@@ -1,0 +1,28 @@
+Package: rtemis.core
+Title: Core Utilities for the 'rtemis' Ecosystem
+Version: 0.0.3
+Date: 2026-04-19
+Authors@R: person(given = "E.D.", family = "Gennatas", role = c("aut", "cre", "cph"), 
+    email = "gennatas@gmail.com", comment = c(ORCID = "0000-0001-9280-3609"))
+Description: Utilities used across packages of the 'rtemis' ecosystem. Includes the msg() 
+    messaging system and the fmt() formatting system. Provides test_* functions that return logical 
+    values, check_* functions that throw informative errors, and clean_* functions that return 
+    validated and coerced values. This code began as part of the 'rtemis' package
+    (<doi:10.32614/CRAN.package.rtemis>).
+License: GPL (>= 3)
+URL: https://www.rtemis.org, https://github.com/rtemis-org/rtemis.core
+BugReports: https://github.com/rtemis-org/rtemis.core/issues
+Depends: R (>= 4.1.0)
+Encoding: UTF-8
+RoxygenNote: 7.3.3
+Imports: cli, data.table, methods, S7
+Suggests: testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Config/testthat/parallel: true
+NeedsCompilation: no
+Packaged: 2026-04-20 06:48:19 UTC; sdg
+Author: E.D. Gennatas [aut, cre, cph] (ORCID:
+    <https://orcid.org/0000-0001-9280-3609>)
+Maintainer: E.D. Gennatas <gennatas@gmail.com>
+Repository: CRAN
+Date/Publication: 2026-04-21 19:52:51 UTC
