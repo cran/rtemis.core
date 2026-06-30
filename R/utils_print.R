@@ -1,5 +1,14 @@
 # 2016-23 EDG rtemis.org
 
+#' Test whether an object is a common data structure
+#'
+#' @param x Object to test.
+#'
+#' @return Logical: TRUE if `x` is a common atomic/tabular/list structure.
+#'
+#' @author EDG
+#' @keywords internal
+#' @noRd
 is_common_struct <- function(x) {
   class(x)[1] %in%
     c(
@@ -32,7 +41,7 @@ is_common_struct <- function(x) {
 #' @param prefix Character: Optional prefix for names.
 #' @param pad Integer: Pad output with this many spaces.
 #' @param item_format Formatting function for list item names.
-#' @param maxlength Integer: Maximum length of items to show using `headdot()` before truncating with ellipsis.
+#' @param maxlength Integer: Maximum length of items to show using `collapse_head()` before truncating with ellipsis.
 #' @param center_title Logical: If TRUE, autopad title for centering, if present.
 #' @param title Character: Optional title to print before list.
 #' @param title_newline Logical: If TRUE, print title on new line.
@@ -78,7 +87,7 @@ printls <- function(
     }
     cat(strrep(" ", pad), "NULL", sep = "")
   } else if (length(x) == 0) {
-    cat(class(x), "of length 0.\n")
+    cat(class(x)[1], "of length 0.\n")
   } else if (is.data.frame(x) && !print_df) {
     cat(
       "data.frame with",
@@ -88,7 +97,7 @@ printls <- function(
       "columns.\n"
     )
   } else if (!is_common_struct(x)) {
-    cat("object of class:", class(x), "\n")
+    cat("object of class '", class(x)[1], "'\n")
   } else {
     x <- as.list(x)
     # Get class of each element
@@ -97,7 +106,10 @@ printls <- function(
     is_fn <- which(sapply(x, is.function))
     if (length(is_fn) > 0) {
       for (i in is_fn) {
-        x[[i]] <- paste0(as.character(head(deparse(x[[i]]), n = 1L)), "...")
+        x[[i]] <- paste0(
+          as.character(utils::head(deparse(x[[i]]), n = 1L)),
+          "..."
+        )
       }
     }
     # Remove NULLs
@@ -182,7 +194,7 @@ printls <- function(
             )
           } else {
             cat(
-              italic("object of class:", class(x[[i]])),
+              italic("object of class '", class(x[[i]])[1], "'"),
               "\n"
             )
           }
@@ -226,7 +238,11 @@ printls <- function(
           if (print_class) {
             gray(paste0("<", abbreviate(classes_[[i]], abbrev_class_n), "> "))
           },
-          headdot(x[[i]], maxlength = maxlength, format_fn = format_fn_rhs),
+          collapse_head(
+            x[[i]],
+            maxlength = maxlength,
+            format_fn = format_fn_rhs
+          ),
           "\n"
         ))
       } else if (isS4(x[[i]])) {
@@ -243,7 +259,7 @@ printls <- function(
           cat("\n")
           print(x[[i]])
         } else {
-          cat("(S4 object of class: '", class(x[[i]]), "')\n", sep = "")
+          cat("(S4 object of class '", class(x[[i]]), "')\n", sep = "")
         }
       } else if (!is_common_struct(x[[i]])) {
         cat(paste0(
@@ -256,7 +272,7 @@ printls <- function(
           if (print_class) {
             gray(paste0("<", abbreviate(classes_[[i]], abbrev_class_n), "> "))
           },
-          italic("object of class:", class(x[[i]])),
+          italic("object of class '", class(x[[i]]), "'"),
           "\n"
         ))
       } else {
@@ -270,7 +286,11 @@ printls <- function(
           if (print_class) {
             gray(paste0("<", abbreviate(classes_[[i]], abbrev_class_n), "> "))
           },
-          headdot(x[[i]], maxlength = maxlength, format_fn = format_fn_rhs),
+          collapse_head(
+            x[[i]],
+            maxlength = maxlength,
+            format_fn = format_fn_rhs
+          ),
           "\n"
         ))
       }
@@ -293,7 +313,8 @@ printls <- function(
 #' @author EDG
 #' @keywords internal
 #' @noRd
-
+#'
+#' @return `NULL` invisibly; prints the row to the console.
 printdf1 <- function(x, pad = 2) {
   x <- as.data.frame(x)
   # df <- data.frame(Parameter = c(names(x)), Value = unlist(x), row.names = NULL)
@@ -430,16 +451,20 @@ printdf <- function(
 #' formatting
 #' @param transpose Logical: If TRUE, transpose `x` before printing.
 #' @param justify Character: "right", "left".
-#' @param colnames Logical: If TRUE, print column names.
-#' @param rownames Logical: If TRUE, print row names.
 #' @param colnames_formatter Format function for printing column names.
 #' @param rownames_formatter Format function for printing row names.
-#' @param newline_pre Logical: If TRUE, print a new line before printing data frame.
-#' @param newline Logical: If TRUE, print a new line after printing data frame.
 #'
 #' @author EDG
 #' @keywords internal
-#' @noRd
+#' @export
+#' @param incl_colnames Logical: If TRUE, include column names.
+#' @param incl_rownames Logical: If TRUE, include row names.
+#' @param output_type Character: Output type ("ansi", "html", "plain").
+#'
+#' @return Character: Formatted string representation of the data.frame.
+#'
+#' @examples
+#' show_df(iris[1:3, ]) |> cat()
 show_df <- function(
   x,
   pad = 0L,
@@ -553,7 +578,16 @@ show_df <- function(
 #' @author EDG
 #'
 #' @keywords internal
-#' @noRd
+#' @export
+#' @param formatter Function: Formatting function applied to table values.
+#' @param output_type Character: Output type ("ansi", "html", "plain").
+#'
+#' @examples
+#' tbl <- table(
+#'   Predicted = c("a", "b", "a", "b", "a"),
+#'   Reference = c("a", "a", "b", "b", "a")
+#' )
+#' cat(show_table(tbl))
 show_table <- function(
   x,
   spacing = 2L,
@@ -625,30 +659,50 @@ show_table <- function(
   )
   out
 }
+#' Format a vector as a bulleted list
+#'
 
 #' @keywords internal
 #' @noRd
+#' @param x Vector: Items to format as a bulleted list.
+#' @param bullet Character: Bullet string prepended to each item.
+#'
+#' @return Character: Single string with one bulleted item per line.
 pastels <- function(x, bullet = "  -") {
   paste(paste(bullet, x, collapse = "\n"), "\n")
 }
 
 
-#' Get first few elements of a vector with ellipsis
+#' Collapse head of vector with commas followed by ellipsis
 #'
 #' @details
 #' Used, for example, by `repr_ls`
 #'
+#' @param x Vector: Input whose first elements are shown.
+#' @param maxlength Integer: Maximum number of elements to show before truncating with an ellipsis. Use -1 to show all.
+#' @param format_fn Function: Formatting function applied to each element.
+#'
 #' @return Character.
 #'
-#' @keywords internal
-#' @noRd
-headdot <- function(x, maxlength = 6L, format_fn = identity) {
-  if (maxlength == -1L || length(x) < maxlength) {
+#' @author EDG
+#' @export
+#'
+#' @examples
+#' collapse_head(98054:99890, maxlength = 5L)
+#' collapse_head(
+#'   c("mango", "banana", "tangerine", "sugar", "ackee", "cocoa bean"),
+#'   maxlength = 3L, format_fn = toupper
+#' )
+collapse_head <- function(x, maxlength = 6L, format_fn = identity) {
+  if (maxlength == -1L || length(x) <= maxlength) {
     paste(format_fn(x), collapse = ", ")
   } else {
     paste0(
-      paste(format_fn(head(as.vector(x), n = maxlength)), collapse = ", "),
-      "..."
+      paste(
+        format_fn(utils::head(as.vector(x), n = maxlength)),
+        collapse = ", "
+      ),
+      ", ..."
     )
   }
 }
@@ -667,7 +721,7 @@ headdot <- function(x, maxlength = 6L, format_fn = identity) {
 #'
 #' @author EDG
 #' @keywords internal
-#' @noRd
+#' @export
 #'
 #' @examples
 #' catsize(iris)
@@ -701,11 +755,17 @@ catsize <- function(x, name = NULL, verbosity = 1L, newline = TRUE) {
     invisible(.nels)
   }
 }
-
+#' Convert a named list to a formatted text block
+#'
 
 #' @author EDG
 #' @keywords internal
 #' @noRd
+#' @param x List: Named list to format.
+#' @param sep Character: Separator between each name and value.
+#' @param line Character: Line terminator appended after each element.
+#'
+#' @return Character: Single string with one `name<sep>value` entry per line.
 list2text <- function(x, sep = ": ", line = "\n") {
   .names <- names(x)
   sapply(seq_along(x), \(i) {
@@ -756,7 +816,7 @@ show_padded <- function(
 #' @param prefix Character: Optional prefix for names.
 #' @param pad Integer: Pad output with this many spaces.
 #' @param item_format Formatting function for items.
-#' @param maxlength Integer: Maximum length of items to show using `headdot()` before truncating with ellipsis.
+#' @param maxlength Integer: Maximum length of items to show using `collapse_head()` before truncating with ellipsis.
 #' @param center_title Logical: If TRUE, autopad title for centering, if present.
 #' @param title Character: Title to print before list.
 #' @param title_newline Logical: If TRUE, print title on new line.
@@ -837,9 +897,9 @@ repr_ls <- function(
   } else if (!is_common_struct(x)) {
     result <- paste0(
       result,
-      "object of class: ",
-      paste(class(x), collapse = ", "),
-      "\n"
+      "object of class '",
+      class(x)[1],
+      "'\n"
     )
   } else {
     x <- as.list(x)
@@ -849,7 +909,10 @@ repr_ls <- function(
     is_fn <- which(sapply(x, is.function))
     if (length(is_fn) > 0) {
       for (i in is_fn) {
-        x[[i]] <- paste0(as.character(head(deparse(x[[i]]), n = 1L)), "...")
+        x[[i]] <- paste0(
+          as.character(utils::head(deparse(x[[i]]), n = 1L)),
+          "..."
+        )
       }
     }
     # Set NULLs to "NULL"
@@ -957,9 +1020,10 @@ repr_ls <- function(
             result <- paste0(
               result,
               italic(
-                paste(
-                  "object of class:",
-                  paste(class(x[[i]]), collapse = ", ")
+                paste0(
+                  "object of class '",
+                  paste(class(x[[i]]), collapse = ", "),
+                  "'"
                 ),
                 output_type = output_type
               ),
@@ -1010,7 +1074,8 @@ repr_ls <- function(
           },
           error = function(e) {
             paste0(
-              "(S7 object of class: '",
+              strrep(" ", lhs + 2),
+              "(S7 object of class '",
               paste(class(x[[i]]), collapse = ", "),
               "')\n"
             )
@@ -1036,7 +1101,11 @@ repr_ls <- function(
           } else {
             ""
           },
-          headdot(x[[i]], maxlength = maxlength, format_fn = format_fn_rhs),
+          collapse_head(
+            x[[i]],
+            maxlength = maxlength,
+            format_fn = format_fn_rhs
+          ),
           "\n"
         )
         result <- paste0(result, item_text)
@@ -1061,14 +1130,14 @@ repr_ls <- function(
           # This is complex, so for now we'll just show the class
           result <- paste0(
             result,
-            "(S4 object of class: '",
+            "(S4 object of class '",
             paste(class(x[[i]]), collapse = ", "),
             "')\n"
           )
         } else {
           result <- paste0(
             result,
-            "(S4 object of class: '",
+            "(S4 object of class '",
             paste(class(x[[i]]), collapse = ", "),
             "')\n"
           )
@@ -1093,9 +1162,10 @@ repr_ls <- function(
             ""
           },
           italic(
-            paste(
-              "object of class:",
-              paste(class(x[[i]]), collapse = ", ")
+            paste0(
+              "object of class '",
+              paste(class(x[[i]]), collapse = ", "),
+              "'"
             ),
             output_type = output_type
           ),
@@ -1121,7 +1191,11 @@ repr_ls <- function(
           } else {
             ""
           },
-          headdot(x[[i]], maxlength = maxlength, format_fn = format_fn_rhs),
+          collapse_head(
+            x[[i]],
+            maxlength = maxlength,
+            format_fn = format_fn_rhs
+          ),
           "\n"
         )
         result <- paste0(result, item_text)
