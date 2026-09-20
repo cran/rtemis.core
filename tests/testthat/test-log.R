@@ -38,7 +38,7 @@ test_that("get_verbosity falls back to global when no package override", {
 
 # strip_ansi ----
 test_that("strip_ansi removes SGR escapes", {
-  styled <- fmt("hello", col = "red")
+  styled <- fmt("hello", col = "red", output_type = "ansi")
   expect_true(grepl("\033\\[", styled))
   expect_identical(strip_ansi(styled), "hello")
 })
@@ -156,7 +156,7 @@ test_that("abort message is plain when caller wraps a parent with ANSI", {
   # ANSI only matters for the *console echo* (handled in a separate test).
   inner <- structure(
     class = c("error", "condition"),
-    list(message = fmt("inner", col = "red"), call = NULL)
+    list(message = fmt("inner", col = "red", output_type = "ansi"), call = NULL)
   )
   cond <- tryCatch(
     abort("outer", parent = inner, verbosity = 0L),
@@ -199,6 +199,102 @@ test_that("abort suppresses console output at verbosity 0", {
   })
 })
 
+test_that("abort attaches data fields to the condition", {
+  cond <- tryCatch(
+    abort(
+      "rate limited",
+      class = "my_api_error",
+      data = list(status_code = 429L, provider = "anthropic"),
+      verbosity = 0L
+    ),
+    condition = function(e) e
+  )
+  expect_identical(cond$status_code, 429L)
+  expect_identical(cond$provider, "anthropic")
+  # Data fields must not leak into the human-readable message.
+  expect_identical(conditionMessage(cond), "rate limited")
+})
+
+test_that("abort data fields are visible to selective handlers", {
+  status <- tryCatch(
+    abort(
+      "boom",
+      class = "my_api_error",
+      data = list(status_code = 503L),
+      verbosity = 0L
+    ),
+    my_api_error = function(e) e$status_code
+  )
+  expect_identical(status, 503L)
+})
+
+test_that("abort rejects unnamed or partially named data", {
+  expect_error(
+    abort("boom", data = list(1L), verbosity = 0L),
+    "fully named list"
+  )
+  expect_error(
+    abort("boom", data = list(a = 1L, 2L), verbosity = 0L),
+    "fully named list"
+  )
+  expect_error(
+    abort("boom", data = c(a = 1L), verbosity = 0L),
+    "fully named list"
+  )
+})
+
+test_that("abort rejects data names that collide with condition fields", {
+  expect_error(
+    abort("boom", data = list(message = "clobber"), verbosity = 0L),
+    "collide"
+  )
+  expect_error(
+    abort("boom", data = list(calls = "clobber", ok = 1L), verbosity = 0L),
+    "collide"
+  )
+})
+
+test_that("abort rejects a `trace` field in data", {
+  # `trace` is not a field abort() sets, so this is not a clobber check: it
+  # stops a caller from reintroducing the testthat/rlang reporter crash that
+  # naming the stack `$calls` was meant to avoid.
+  expect_error(
+    abort("boom", data = list(trace = "clobber"), verbosity = 0L),
+    "must not set `trace`"
+  )
+  expect_error(
+    abort("boom", data = list(trace = sys.calls(), ok = 1L), verbosity = 0L),
+    "must not set `trace`"
+  )
+})
+
+test_that("abort accepts NULL and empty-list data", {
+  cond <- tryCatch(
+    abort("boom", data = list(), verbosity = 0L),
+    condition = function(e) e
+  )
+  expect_identical(conditionMessage(cond), "boom")
+  cond <- tryCatch(
+    abort("boom", data = NULL, verbosity = 0L),
+    condition = function(e) e
+  )
+  expect_identical(conditionMessage(cond), "boom")
+})
+
+
+test_that("abort does not claim the `trace` condition field", {
+  # rlang and testthat treat `$trace` as an `rlang::trace_back()` object and
+  # call `nrow()` on it. A `pairlist` there returns NULL, so testthat's
+  # `format.expectation()` errors on `NA` and takes the whole reporter down --
+  # every rtemis error in a failing test becomes unreadable. Leaving the name
+  # unclaimed also lets testthat show its own backtrace, pruned to user frames.
+  cond <- tryCatch(abort("boom", verbosity = 0L), condition = function(e) e)
+  expect_false("trace" %in% names(cond))
+  expect_null(cond[["trace"]])
+  expect_true(length(cond[["calls"]]) > 0L)
+  expect_true(all(vapply(cond[["calls"]], is.call, logical(1L))))
+})
+
 
 # format_trace ----
 test_that("format_trace returns empty string for NULL or empty trace", {
@@ -206,7 +302,7 @@ test_that("format_trace returns empty string for NULL or empty trace", {
   expect_identical(format_trace(list()), "")
 })
 
-test_that("format_trace accepts a condition and extracts $trace", {
+test_that("format_trace accepts a condition and extracts $calls", {
   cond <- tryCatch(
     abort("boom", verbosity = 0L),
     condition = function(e) e
@@ -233,4 +329,35 @@ test_that("format_trace truncates lines longer than max_width", {
   body <- sub("^ *\\d+: ", "", out)
   expect_identical(nchar(body), 40L)
   expect_true(endsWith(body, "..."))
+})
+
+test_that("format_trace renders an rlang trace via rlang's formatter", {
+  # Packages built on `rlang::abort()` put their stack on `$trace` as an
+  # rlang trace object, not on `$calls`. Deparsing that would walk the
+  # underlying data.frame's columns, so it is handed to rlang to format.
+  skip_if_not_installed("rlang")
+  cond <- tryCatch(rlang::abort("upstream boom"), condition = function(e) e)
+  expect_null(cond[["calls"]])
+  out <- format_trace(cond)
+  expect_type(out, "character")
+  expect_length(out, 1L)
+  expect_true(nchar(out) > 0L)
+  # rlang's tree layout, not our "%2d: " numbering, and no column garbage.
+  expect_no_match(out, "^c\\(0L, 1L", fixed = FALSE)
+  expect_match(out, "abort")
+})
+
+test_that("format_trace ignores a $trace that is not an rlang trace", {
+  # The class gate means a bogus `$trace` is skipped rather than mangled.
+  cond <- structure(
+    class = c("rtemis_error", "error", "condition"),
+    list(message = "boom", trace = list(quote(f()), quote(g())))
+  )
+  expect_identical(format_trace(cond), "")
+  # `$calls` still wins when both are present.
+  cond2 <- structure(
+    class = c("rtemis_error", "error", "condition"),
+    list(message = "boom", calls = list(quote(h())), trace = "junk")
+  )
+  expect_match(format_trace(cond2), "h\\(\\)")
 })

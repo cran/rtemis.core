@@ -21,8 +21,6 @@
 #   unit_open_vector / optional_unit_open_vector         (0, 1)
 #   pos_double_vector / optional_pos_double_vector       (0, Inf)
 #   nonneg_double_vector / optional_nonneg_double_vector [0, Inf)
-# Factory ---------------------------------------------------------------------
-#   bounded_double_property
 
 # %% Character ----
 #' Non-empty character scalar S7 property
@@ -32,6 +30,11 @@
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Model <- S7::new_class("Model", properties = list(algorithm = character_scalar))
+#' Model(algorithm = "LightGBM")@algorithm
+#' try(Model(algorithm = ""))
 character_scalar <- new_property(
   class_character,
   validator = function(value) {
@@ -50,6 +53,12 @@ character_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Model <- S7::new_class("Model", properties = list(label = optional_character_scalar))
+#' Model()@label
+#' Model(label = "Experiment 1")@label
+#' try(Model(label = ""))
 optional_character_scalar <- new_property(
   class = new_union(NULL, class_character),
   validator = function(value) {
@@ -72,6 +81,11 @@ optional_character_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Metric <- S7::new_class("Metric", properties = list(value = double_scalar))
+#' Metric(value = -1.5)@value
+#' try(Metric(value = c(1, 2)))
 double_scalar <- new_property(
   class_double,
   validator = function(value) {
@@ -90,6 +104,12 @@ double_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Metric <- S7::new_class("Metric", properties = list(offset = optional_double_scalar))
+#' Metric()@offset
+#' Metric(offset = 0.5)@offset
+#' try(Metric(offset = NA_real_))
 optional_double_scalar <- new_property(
   class = new_union(NULL, class_double),
   validator = function(value) {
@@ -109,6 +129,12 @@ optional_double_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Params <- S7::new_class("Params", properties = list(seed = integer_scalar))
+#' Params(seed = 42L)@seed
+#' # Doubles are not accepted: the type must be integer
+#' try(Params(seed = 42))
 integer_scalar <- new_property(
   class_integer,
   validator = function(value) {
@@ -127,6 +153,12 @@ integer_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Params <- S7::new_class("Params", properties = list(seed = optional_integer_scalar))
+#' Params()@seed
+#' Params(seed = 42L)@seed
+#' try(Params(seed = 42))
 optional_integer_scalar <- new_property(
   class = new_union(NULL, class_integer),
   validator = function(value) {
@@ -146,6 +178,14 @@ optional_integer_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Counter <- S7::new_class(
+#'   "Counter",
+#'   properties = list(n_failed = nonneg_integer_scalar)
+#' )
+#' Counter(n_failed = 0L)@n_failed
+#' try(Counter(n_failed = -1L))
 nonneg_integer_scalar <- new_property(
   class_integer,
   validator = function(value) {
@@ -164,6 +204,15 @@ nonneg_integer_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Counter <- S7::new_class(
+#'   "Counter",
+#'   properties = list(n_failed = optional_nonneg_integer_scalar)
+#' )
+#' Counter()@n_failed
+#' Counter(n_failed = 3L)@n_failed
+#' try(Counter(n_failed = -1L))
 optional_nonneg_integer_scalar <- new_property(
   class = new_union(NULL, class_integer),
   validator = function(value) {
@@ -184,6 +233,14 @@ optional_nonneg_integer_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Resample <- S7::new_class(
+#'   "Resample",
+#'   properties = list(n_resamples = pos_integer_scalar)
+#' )
+#' Resample(n_resamples = 10L)@n_resamples
+#' try(Resample(n_resamples = 0L))
 pos_integer_scalar <- new_property(
   class_integer,
   validator = function(value) {
@@ -202,6 +259,15 @@ pos_integer_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Resample <- S7::new_class(
+#'   "Resample",
+#'   properties = list(n_workers = optional_pos_integer_scalar)
+#' )
+#' Resample()@n_workers
+#' Resample(n_workers = 4L)@n_workers
+#' try(Resample(n_workers = 0L))
 optional_pos_integer_scalar <- new_property(
   class = new_union(NULL, class_integer),
   validator = function(value) {
@@ -223,6 +289,11 @@ optional_pos_integer_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Params <- S7::new_class("Params", properties = list(scale = logical_scalar))
+#' Params(scale = TRUE)@scale
+#' try(Params(scale = NA))
 logical_scalar <- new_property(
   class_logical,
   validator = function(value) {
@@ -241,6 +312,12 @@ logical_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Params <- S7::new_class("Params", properties = list(scale = optional_logical_scalar))
+#' Params()@scale
+#' Params(scale = FALSE)@scale
+#' try(Params(scale = c(TRUE, FALSE)))
 optional_logical_scalar <- new_property(
   class = new_union(NULL, class_logical),
   validator = function(value) {
@@ -260,6 +337,11 @@ optional_logical_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Split <- S7::new_class("Split", properties = list(train_p = prob_scalar))
+#' Split(train_p = 0.75)@train_p
+#' try(Split(train_p = 1.5))
 prob_scalar <- new_property(
   class_double,
   validator = function(value) {
@@ -278,6 +360,12 @@ prob_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Split <- S7::new_class("Split", properties = list(threshold = optional_prob_scalar))
+#' Split()@threshold
+#' Split(threshold = 0.5)@threshold
+#' try(Split(threshold = -0.1))
 optional_prob_scalar <- new_property(
   class = new_union(NULL, class_double),
   validator = function(value) {
@@ -299,6 +387,12 @@ optional_prob_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Boost <- S7::new_class("Boost", properties = list(learning_rate = unit_open_scalar))
+#' Boost(learning_rate = 0.1)@learning_rate
+#' # Bounds are exclusive: 0 and 1 are rejected
+#' try(Boost(learning_rate = 1))
 unit_open_scalar <- new_property(
   class_double,
   validator = function(value) {
@@ -317,6 +411,15 @@ unit_open_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Boost <- S7::new_class(
+#'   "Boost",
+#'   properties = list(subsample = optional_unit_open_scalar)
+#' )
+#' Boost()@subsample
+#' Boost(subsample = 0.8)@subsample
+#' try(Boost(subsample = 0))
 optional_unit_open_scalar <- new_property(
   class = new_union(NULL, class_double),
   validator = function(value) {
@@ -338,6 +441,11 @@ optional_unit_open_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Penalty <- S7::new_class("Penalty", properties = list(lambda = pos_double_scalar))
+#' Penalty(lambda = 0.01)@lambda
+#' try(Penalty(lambda = 0))
 pos_double_scalar <- new_property(
   class_double,
   validator = function(value) {
@@ -358,6 +466,15 @@ pos_double_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Penalty <- S7::new_class(
+#'   "Penalty",
+#'   properties = list(gamma = optional_pos_double_scalar)
+#' )
+#' Penalty()@gamma
+#' Penalty(gamma = 2)@gamma
+#' try(Penalty(gamma = Inf))
 optional_pos_double_scalar <- new_property(
   class = new_union(NULL, class_double),
   validator = function(value) {
@@ -379,6 +496,11 @@ optional_pos_double_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Penalty <- S7::new_class("Penalty", properties = list(alpha = nonneg_double_scalar))
+#' Penalty(alpha = 0)@alpha
+#' try(Penalty(alpha = -1))
 nonneg_double_scalar <- new_property(
   class_double,
   validator = function(value) {
@@ -397,6 +519,15 @@ nonneg_double_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Penalty <- S7::new_class(
+#'   "Penalty",
+#'   properties = list(alpha = optional_nonneg_double_scalar)
+#' )
+#' Penalty()@alpha
+#' Penalty(alpha = 0)@alpha
+#' try(Penalty(alpha = -1))
 optional_nonneg_double_scalar <- new_property(
   class = new_union(NULL, class_double),
   validator = function(value) {
@@ -419,6 +550,11 @@ optional_nonneg_double_scalar <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Preds <- S7::new_class("Preds", properties = list(probabilities = prob_vector))
+#' Preds(probabilities = c(0, 0.5, 1))@probabilities
+#' try(Preds(probabilities = c(0.5, NA)))
 prob_vector <- new_property(
   class_double,
   validator = function(value) {
@@ -444,6 +580,15 @@ prob_vector <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Preds <- S7::new_class(
+#'   "Preds",
+#'   properties = list(probabilities = optional_prob_vector)
+#' )
+#' Preds()@probabilities
+#' Preds(probabilities = c(0.1, 0.9))@probabilities
+#' try(Preds(probabilities = c(0.1, 1.1)))
 optional_prob_vector <- new_property(
   class = new_union(NULL, class_double),
   validator = function(value) {
@@ -472,6 +617,11 @@ optional_prob_vector <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Grid <- S7::new_class("Grid", properties = list(learning_rates = unit_open_vector))
+#' Grid(learning_rates = c(0.01, 0.1))@learning_rates
+#' try(Grid(learning_rates = c(0.1, 1)))
 unit_open_vector <- new_property(
   class_double,
   validator = function(value) {
@@ -497,6 +647,15 @@ unit_open_vector <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Grid <- S7::new_class(
+#'   "Grid",
+#'   properties = list(subsamples = optional_unit_open_vector)
+#' )
+#' Grid()@subsamples
+#' Grid(subsamples = c(0.5, 0.8))@subsamples
+#' try(Grid(subsamples = c(0.5, 1)))
 optional_unit_open_vector <- new_property(
   class = new_union(NULL, class_double),
   validator = function(value) {
@@ -525,6 +684,14 @@ optional_unit_open_vector <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Weights <- S7::new_class(
+#'   "Weights",
+#'   properties = list(case_weights = pos_double_vector)
+#' )
+#' Weights(case_weights = c(0.5, 1, 2))@case_weights
+#' try(Weights(case_weights = c(1, 0)))
 pos_double_vector <- new_property(
   class_double,
   validator = function(value) {
@@ -550,6 +717,12 @@ pos_double_vector <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Grid <- S7::new_class("Grid", properties = list(lambdas = optional_pos_double_vector))
+#' Grid()@lambdas
+#' Grid(lambdas = c(0.01, 0.1, 1))@lambdas
+#' try(Grid(lambdas = c(0.1, Inf)))
 optional_pos_double_vector <- new_property(
   class = new_union(NULL, class_double),
   validator = function(value) {
@@ -578,6 +751,14 @@ optional_pos_double_vector <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Importance <- S7::new_class(
+#'   "Importance",
+#'   properties = list(scores = nonneg_double_vector)
+#' )
+#' Importance(scores = c(0, 1.5, 3))@scores
+#' try(Importance(scores = c(1, -1)))
 nonneg_double_vector <- new_property(
   class_double,
   validator = function(value) {
@@ -603,6 +784,15 @@ nonneg_double_vector <- new_property(
 #' @return An S7 property object.
 #' @author EDG
 #' @export
+#'
+#' @examples
+#' Importance <- S7::new_class(
+#'   "Importance",
+#'   properties = list(scores = optional_nonneg_double_vector)
+#' )
+#' Importance()@scores
+#' Importance(scores = c(0, 2))@scores
+#' try(Importance(scores = c(0, -2)))
 optional_nonneg_double_vector <- new_property(
   class = new_union(NULL, class_double),
   validator = function(value) {
@@ -621,76 +811,6 @@ optional_nonneg_double_vector <- new_property(
     NULL
   }
 )
-
-
-# %% Factory ----
-#' Create a bounded double S7 property
-#'
-#' Returns a `new_property()` for a double scalar constrained to a given interval.
-#' Useful for bounds not covered by the pre-built properties.
-#'
-#' @param lower Numeric scalar. Lower bound. Default `-Inf`.
-#' @param upper Numeric scalar. Upper bound. Default `Inf`.
-#' @param lower_open Logical scalar. If `TRUE`, lower bound is exclusive `(lower, ...]`.
-#'   Default `FALSE`.
-#' @param upper_open Logical scalar. If `TRUE`, upper bound is exclusive `[..., upper)`.
-#'   Default `FALSE`.
-#' @param nullable Logical scalar. If `TRUE`, `NULL` is also accepted. Default `FALSE`.
-#'
-#' @return An S7 property object.
-#' @author EDG
-#' @export
-#'
-#' @examples
-#' # Learning rate in (0, 1]
-#' lr_prop <- bounded_double_property(0, 1, lower_open = TRUE)
-bounded_double_property <- function(
-  lower = -Inf,
-  upper = Inf,
-  lower_open = FALSE,
-  upper_open = FALSE,
-  nullable = FALSE
-) {
-  lower_sym <- if (lower_open) "(" else "["
-  upper_sym <- if (upper_open) ")" else "]"
-  bound_desc <- paste0(
-    "must be a finite double in ",
-    lower_sym,
-    lower,
-    ", ",
-    upper,
-    upper_sym
-  )
-
-  check_lower <- if (lower_open) {
-    function(v) v > lower
-  } else {
-    function(v) v >= lower
-  }
-  check_upper <- if (upper_open) {
-    function(v) v < upper
-  } else {
-    function(v) v <= upper
-  }
-
-  cls <- if (nullable) new_union(NULL, class_double) else class_double
-
-  new_property(
-    class = cls,
-    validator = function(value) {
-      if (nullable && is.null(value)) {
-        return(NULL)
-      }
-      if (length(value) != 1L || is.na(value) || !is.finite(value)) {
-        return(paste0(bound_desc, " (must be a finite scalar)"))
-      }
-      if (!check_lower(value) || !check_upper(value)) {
-        return(bound_desc)
-      }
-      NULL
-    }
-  )
-}
 
 
 # %% enum() ----

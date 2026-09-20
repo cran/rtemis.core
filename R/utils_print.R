@@ -459,7 +459,8 @@ printdf <- function(
 #' @export
 #' @param incl_colnames Logical: If TRUE, include column names.
 #' @param incl_rownames Logical: If TRUE, include row names.
-#' @param output_type Character: Output type ("ansi", "html", "plain").
+#' @param output_type Character ("ansi", "html", "plain") or NULL: Output type. If NULL, resolved
+#' via [get_output_type()].
 #'
 #' @return Character: Formatted string representation of the data.frame.
 #'
@@ -476,10 +477,8 @@ show_df <- function(
   incl_rownames = TRUE,
   colnames_formatter = highlight,
   rownames_formatter = gray,
-  output_type = c("ansi", "html", "plain")
+  output_type = NULL
 ) {
-  output_type <- match.arg(output_type)
-
   if (transpose) {
     x <- as.data.frame(t(x))
   }
@@ -580,7 +579,8 @@ show_df <- function(
 #' @keywords internal
 #' @export
 #' @param formatter Function: Formatting function applied to table values.
-#' @param output_type Character: Output type ("ansi", "html", "plain").
+#' @param output_type Character ("ansi", "html", "plain") or NULL: Output type. If NULL, resolved
+#' via [get_output_type()].
 #'
 #' @examples
 #' tbl <- table(
@@ -593,10 +593,8 @@ show_table <- function(
   spacing = 2L,
   pad = 2L,
   formatter = highlight,
-  output_type = c("ansi", "html", "plain")
+  output_type = NULL
 ) {
-  output_type <- match.arg(output_type)
-
   dim_names <- names(attr(x, "dimnames"))
   class_names <- attr(x, "dimnames")[["Reference"]]
   n_classes <- NCOL(x)
@@ -827,7 +825,8 @@ show_padded <- function(
 #' @param print_df Logical: If TRUE, print data frame contents, otherwise print n rows and columns.
 #' @param print_S4 Logical: If TRUE, print S4 object contents, otherwise print class name.
 #' @param limit Integer: Maximum number of items to show.
-#' @param output_type Character: Output type for mformat ("ansi", "html", "plain").
+#' @param output_type Character ("ansi", "html", "plain") or NULL: Output type for mformat. If
+#' NULL, resolved via [get_output_type()].
 #'
 #' @return Character: Formatted string that can be printed with cat()
 #'
@@ -863,10 +862,8 @@ repr_ls <- function(
   print_df = FALSE,
   print_S4 = FALSE,
   limit = 12L,
-  output_type = c("ansi", "html", "plain")
+  output_type = NULL
 ) {
-  output_type <- match.arg(output_type)
-
   # Initialize output string
   result <- ""
 
@@ -1055,33 +1052,50 @@ repr_ls <- function(
         )
         result <- paste0(result, item_text)
       } else if (S7_inherits(x[[i]])) {
-        item_text <- paste0(
-          item_format(
-            format(
-              paste0(prefix, xnames[i]),
-              width = lhs,
-              justify = "right"
-            ),
-            output_type = output_type
+        item_text <- item_format(
+          format(
+            paste0(prefix, xnames[i]),
+            width = lhs,
+            justify = "right"
           ),
-          ":\n" # S7 show begin on next line, otherwise must have different pad for first line (S7name) and for rest
+          output_type = output_type
         )
-        result <- paste0(result, item_text)
         # Show S7 object: repr() must return a character string of length 1
         s7_output <- tryCatch(
           {
             repr(x[[i]], pad = lhs + 2, output_type = output_type)
           },
-          error = function(e) {
-            paste0(
-              strrep(" ", lhs + 2),
-              "(S7 object of class '",
-              paste(class(x[[i]]), collapse = ", "),
-              "')\n"
-            )
-          }
+          error = function(e) NULL
         )
-        result <- paste0(result, s7_output)
+        if (is.null(s7_output)) {
+          result <- paste0(
+            result,
+            item_text,
+            ": (S7 object of class '",
+            paste(class(x[[i]]), collapse = ", "),
+            "')\n"
+          )
+        } else if (grepl("\n", sub("\n+$", "", s7_output), fixed = TRUE)) {
+          # A repr spanning several lines begins on the next line, so that every
+          # one of its lines carries the same pad.
+          result <- paste0(result, item_text, ":\n", s7_output)
+        } else {
+          # A repr of a single line reads as a value, so it is shown on the
+          # name's line, re-rendered without the pad it would otherwise carry.
+          inline <- tryCatch(
+            {
+              repr(x[[i]], pad = 0L, output_type = output_type)
+            },
+            error = function(e) s7_output
+          )
+          result <- paste0(
+            result,
+            item_text,
+            ": ",
+            sub("\n+$", "", inline),
+            "\n"
+          )
+        }
       } else if (is.data.frame(x[[i]])) {
         item_text <- paste0(
           item_format(
